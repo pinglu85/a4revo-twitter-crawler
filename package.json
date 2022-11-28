@@ -10,6 +10,10 @@
   },
   "keywords": [],
   "author": "",
+  "engines": {
+    "npm": ">=8.0.0",
+    "node": ">=18.0.0"
+  },
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.218.0",
