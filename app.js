@@ -89,7 +89,7 @@ const searchParams = new URLSearchParams(params);
 
 async function getTweets(sinceId) {
   if (!sinceId) {
-    const startTime = new Date('2022-11-25T00:00:00').toISOString();
+    const startTime = '2022-11-25T00:00:00Z';
     searchParams.append('start_time', startTime);
   } else {
     searchParams.append('since_id', sinceId);
