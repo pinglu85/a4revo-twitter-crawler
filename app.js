@@ -28,7 +28,7 @@ const task = new AsyncTask(
   }
 );
 
-const job = new SimpleIntervalJob({ minutes: 5 }, task);
+const job = new SimpleIntervalJob({ minutes: 5, runImmediately: true }, task);
 
 //create and start jobs
 scheduler.addSimpleIntervalJob(job);
