@@ -16,6 +16,8 @@ const s3Client = new S3Client({
   },
 });
 
+let nextToken = '';
+
 const scheduler = new ToadScheduler();
 
 const task = new AsyncTask(
@@ -40,10 +42,7 @@ async function fetchTweets() {
       useUnifiedTopology: true,
     });
 
-    const tweets = await Tweet.find().sort({ tweetCreatedAt: -1 }).limit(1);
-    const sinceId = tweets.length === 0 ? '' : tweets[0].id;
-
-    const { data, includes, meta } = await getTweets(sinceId);
+    const { data, includes, meta } = await getTweets(nextToken);
     const mediaKeyToS3Url = await uploadMediaToS3(includes.media);
 
     const newTweets = [];
@@ -68,7 +67,9 @@ async function fetchTweets() {
 
     await Tweet.insertMany(newTweets);
 
-    if (!meta.next_token) {
+    if (meta.next_token) {
+      nextToken = meta.next_token;
+    } else {
       scheduler.stop();
       process.exit(22);
     }
@@ -84,16 +85,12 @@ const params = {
   expansions: 'attachments.media_keys',
   'tweet.fields': 'attachments,created_at',
   max_results: 5,
+  start_time: '2022-11-24T13:00:00Z',
 };
 const searchParams = new URLSearchParams(params);
 
-async function getTweets(sinceId) {
-  if (!sinceId) {
-    const startTime = '2022-11-25T00:00:00Z';
-    searchParams.append('start_time', startTime);
-  } else {
-    searchParams.append('since_id', sinceId);
-  }
+async function getTweets(nextToken) {
+  if (nextToken) searchParams.append('pagination_token', nextToken);
 
   try {
     const response = await fetch(`${URL}?${searchParams.toString()}`, {
