@@ -49,7 +49,8 @@ async function fetchTweets() {
     if (!result) return;
 
     const { data, includes, meta } = result;
-    const mediaKeyToS3Url = await uploadMediaToS3(includes.media);
+    const media = includes?.media ?? [];
+    const mediaKeyToS3Url = await uploadMediaToS3(media);
 
     const newTweets = [];
     for (const tweet of data) {
@@ -96,6 +97,7 @@ async function getTweets() {
     'tweet.fields': 'attachments,created_at',
     max_results: 5,
     start_time: '2022-11-24T13:00:00Z',
+    end_time: '2022-11-25T19:49:37.00Z',
   };
   const searchParams = new URLSearchParams(params);
 
