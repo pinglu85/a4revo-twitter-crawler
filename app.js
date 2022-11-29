@@ -30,7 +30,10 @@ const task = new AsyncTask(
   }
 );
 
-const job = new SimpleIntervalJob({ minutes: 5, runImmediately: true }, task);
+const job = new SimpleIntervalJob({ minutes: 5, runImmediately: true }, task, {
+  id: 'id_1',
+  preventOverrun: true,
+});
 
 //create and start jobs
 scheduler.addSimpleIntervalJob(job);
@@ -42,7 +45,10 @@ async function fetchTweets() {
       useUnifiedTopology: true,
     });
 
-    const { data, includes, meta } = await getTweets(nextToken);
+    const result = await getTweets();
+    if (!result) return;
+
+    const { data, includes, meta } = result;
     const mediaKeyToS3Url = await uploadMediaToS3(includes.media);
 
     const newTweets = [];
@@ -74,34 +80,34 @@ async function fetchTweets() {
       process.exit(22);
     }
   } catch (error) {
-    console.error(error);
+    if (error.code !== 'UND_ERR_CONNECT_TIMEOUT') {
+      console.error(error);
+    }
   }
 }
 
 const URL = 'https://api.twitter.com/2/users/1260553941714186241/tweets';
-const params = {
-  'media.fields':
-    'type,url,alt_text,duration_ms,preview_image_url,public_metrics,variants',
-  expansions: 'attachments.media_keys',
-  'tweet.fields': 'attachments,created_at',
-  max_results: 5,
-  start_time: '2022-11-24T13:00:00Z',
-};
-const searchParams = new URLSearchParams(params);
 
-async function getTweets(nextToken) {
+async function getTweets() {
+  const params = {
+    'media.fields':
+      'type,url,alt_text,duration_ms,preview_image_url,public_metrics,variants',
+    expansions: 'attachments.media_keys',
+    'tweet.fields': 'attachments,created_at',
+    max_results: 5,
+    start_time: '2022-11-24T13:00:00Z',
+  };
+  const searchParams = new URLSearchParams(params);
+
   if (nextToken) searchParams.append('pagination_token', nextToken);
 
-  try {
-    const response = await fetch(`${URL}?${searchParams.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.TWITTER_BEAR_TOKEN}`,
-      },
-    });
-    return response.json();
-  } catch (error) {
-    console.error(error);
-  }
+  const response = await fetch(`${URL}?${searchParams.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${process.env.TWITTER_BEAR_TOKEN}`,
+    },
+  });
+
+  return response.json();
 }
 
 async function uploadMediaToS3(media) {
@@ -119,62 +125,58 @@ async function uploadMediaToS3(media) {
     fetchPromises[i] = fetch(url);
   }
 
-  try {
-    const responses = await Promise.all(fetchPromises);
-    const uploadPromises = new Array(media.length);
+  const responses = await Promise.all(fetchPromises);
+  const uploadPromises = new Array(media.length);
 
-    for (let i = 0; i < responses.length; i++) {
-      const data = media[i];
-      const response = responses[i];
-      let fileName = '';
-      let contentType = '';
+  for (let i = 0; i < responses.length; i++) {
+    const data = media[i];
+    const response = responses[i];
+    let fileName = '';
+    let contentType = '';
 
-      if (data.type === 'photo') {
-        fileName = getImageFileName(data.url);
-        const extension = fileName.split('.')[1];
-        contentType = `image/${extension}`;
-      } else {
-        const mp4 = findLargestMp4(data.variants);
-        fileName = getVideoFileName(mp4.url);
-        contentType = 'video/mp4';
-      }
-
-      const reader = response.body.getReader();
-
-      // eslint-disable-next-line no-undef
-      const stream = new ReadableStream({
-        start(controller) {
-          return pump();
-
-          function pump() {
-            return reader.read().then(({ done, value }) => {
-              // When no more data needs to be consumed, close the stream
-              if (done) {
-                controller.close();
-                return;
-              }
-              // Enqueue the next data chunk into our target stream
-              controller.enqueue(value);
-              return pump();
-            });
-          }
-        },
-      });
-
-      uploadPromises[i] = uploadStream(stream, fileName, contentType);
+    if (data.type === 'photo') {
+      fileName = getImageFileName(data.url);
+      const extension = fileName.split('.')[1];
+      contentType = `image/${extension}`;
+    } else {
+      const mp4 = findLargestMp4(data.variants);
+      fileName = getVideoFileName(mp4.url);
+      contentType = 'video/mp4';
     }
 
-    const result = await Promise.all(uploadPromises);
-    const mediaKeyToS3Url = new Map();
+    const reader = response.body.getReader();
 
-    for (let i = 0; i < media.length; i++) {
-      mediaKeyToS3Url.set(media[i].media_key, result[i].Location);
-    }
+    // eslint-disable-next-line no-undef
+    const stream = new ReadableStream({
+      start(controller) {
+        return pump();
 
-    return mediaKeyToS3Url;
-  } catch (error) {
-    console.error(error);
+        function pump() {
+          return reader.read().then(({ done, value }) => {
+            // When no more data needs to be consumed, close the stream
+            if (done) {
+              controller.close();
+              return;
+            }
+            // Enqueue the next data chunk into our target stream
+            controller.enqueue(value);
+            return pump();
+          });
+        }
+      },
+    });
+
+    uploadPromises[i] = uploadStream(stream, fileName, contentType);
   }
+
+  const result = await Promise.all(uploadPromises);
+  const mediaKeyToS3Url = new Map();
+
+  for (let i = 0; i < media.length; i++) {
+    mediaKeyToS3Url.set(media[i].media_key, result[i].Location);
+  }
+
+  return mediaKeyToS3Url;
 }
 
 function uploadStream(stream, fileName, contentType) {
@@ -186,7 +188,7 @@ function uploadStream(stream, fileName, contentType) {
       Body: stream,
       ContentType: contentType,
       ACL: 'public-read',
-      queueSize: 10,
+      queueSize: 5,
     },
   });
 
