@@ -100,7 +100,7 @@ async function getTweets() {
     expansions: 'attachments.media_keys',
     'tweet.fields': 'attachments,created_at',
     max_results: 5,
-    since_id: '1597392221430423552',
+    since_id: '1597911983243730944',
   };
   const searchParams = new URLSearchParams(params);
 
