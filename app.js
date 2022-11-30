@@ -78,7 +78,7 @@ async function fetchTweets() {
       nextToken = meta.next_token;
     } else {
       scheduler.stop();
-      process.exit(22);
+      process.exit(0);
     }
   } catch (error) {
     if (error.code !== 'UND_ERR_CONNECT_TIMEOUT') {
@@ -86,6 +86,10 @@ async function fetchTweets() {
     }
   }
 }
+
+process.on('exit', () => {
+  console.log('Existing the code');
+});
 
 const URL = 'https://api.twitter.com/2/users/1260553941714186241/tweets';
 
@@ -96,8 +100,7 @@ async function getTweets() {
     expansions: 'attachments.media_keys',
     'tweet.fields': 'attachments,created_at',
     max_results: 5,
-    start_time: '2022-11-24T13:00:00Z',
-    end_time: '2022-11-25T19:49:37.00Z',
+    since_id: '1597392221430423552',
   };
   const searchParams = new URLSearchParams(params);
 
