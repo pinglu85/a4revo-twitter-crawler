@@ -31,13 +31,15 @@ export default {
       ? 'http://localhost'
       : process.env.SERVER_DOMAIN,
 
-  redisOptions:
+  redisConfig:
     process.env.NODE_ENV === 'development'
       ? undefined
       : {
-          port: process.env.REDIS_PORT_PROD,
-          host: process.env.REDIS_HOST_PROD,
-          username: process.env.REDIS_USER_PROD,
-          password: process.env.REDIS_PASSWORD_PROD,
+          redis: {
+            port: process.env.REDIS_PORT_PROD,
+            host: process.env.REDIS_HOST_PROD,
+            username: process.env.REDIS_USER_PROD,
+            password: process.env.REDIS_PASSWORD_PROD,
+          },
         },
 };
