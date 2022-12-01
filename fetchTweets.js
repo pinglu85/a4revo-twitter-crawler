@@ -1,5 +1,3 @@
-import mongoose from 'mongoose';
-
 import Tweet from './models/Tweet.js';
 import config from './config.js';
 
@@ -8,11 +6,6 @@ let lastTweetId = '';
 async function fetchTweets(tweetQueue) {
   try {
     if (!lastTweetId) {
-      await mongoose.connect(config.dbUrl, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-
       const tweets = await Tweet.find().sort({ tweetCreatedAt: -1 }).limit(1);
 
       lastTweetId = tweets[0].tweetId;
