@@ -80,13 +80,15 @@ tweetQueue.process(async (job) => {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
-  await Tweet.create(newTweet);
+  const createdTweet = await Tweet.create(newTweet);
 
   completedJobCount++;
   if (completedJobCount === NOTIFICATION_COUNT) {
     io.emit('new tweets', { count: NOTIFICATION_COUNT });
     completedJobCount = 0;
   }
+
+  return createdTweet;
 });
 
 app.use('/admin/queues', serverAdapter.getRouter());
