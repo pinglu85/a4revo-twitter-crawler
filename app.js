@@ -95,6 +95,6 @@ app.use('/admin/queues', serverAdapter.getRouter());
 
 httpServer.listen(config.port, () => {
   console.log(`Running on ${config.port}...`);
-  console.log(`For the UI, open ${config.domain}:${config.port}/admin/queues`);
+  console.log(`For the UI, open ${config.domain}admin/queues`);
   console.log('Make sure Redis is running on port 6379 by default');
 });

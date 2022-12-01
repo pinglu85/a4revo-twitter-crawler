@@ -28,7 +28,7 @@ export default {
 
   domain:
     process.env.NODE_ENV === 'development'
-      ? 'http://localhost'
+      ? 'http://localhost:8000/'
       : process.env.SERVER_DOMAIN,
 
   redisConfig:
