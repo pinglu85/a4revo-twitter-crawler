@@ -42,4 +42,11 @@ export default {
             password: process.env.REDIS_PASSWORD_PROD,
           },
         },
+
+  redisConnectionUrl:
+    process.env.NODE_ENV === 'development'
+      ? process.env.REDIS_CONNECTION_URL_DEV
+      : process.env.REDIS_CONNECTION_URL_PROD,
+
+  sessionSecret: process.env.SESSION_SECRET,
 };
