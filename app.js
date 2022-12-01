@@ -14,7 +14,7 @@ import uploadMediaToS3 from './uploadMediaToS3.js';
 import config from './config.js';
 
 const fetchTweetsScheduler = new ToadScheduler();
-const tweetQueue = new Queue('tweetQueue', config.redisOptions);
+const tweetQueue = new Queue('tweetQueue', config.redisConfig);
 
 const fetchTweetsTask = new AsyncTask(
   'fetch tweets',
